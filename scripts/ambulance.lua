@@ -1,0 +1,6 @@
+RegisterNetEvent("ambulance:server:call911") AddEventHandler("ambulance:server:call911", function(loc, sit) TriggerEvent("AMBULANCE_JS:CALL", { callerId = GetPlayerIdentifier(source, 0) or tostring(source), location = loc, situation = sit }) end)
+RegisterNetEvent("ambulance:server:treat") AddEventHandler("ambulance:server:treat", function(pid, tr) TriggerEvent("AMBULANCE_JS:TREAT", { medicId = GetPlayerIdentifier(source, 0) or tostring(source), patientId = pid, treatmentType = tr }) end)
+RegisterNetEvent("ambulance:server:hospitalize") AddEventHandler("ambulance:server:hospitalize", function(pid, hid) TriggerEvent("AMBULANCE_JS:HOSPITALIZE", { patientId = pid, hospitalId = hid, medicId = GetPlayerIdentifier(source, 0) or tostring(source) }) end)
+RegisterNetEvent("ambulance:server:clockIn") AddEventHandler("ambulance:server:clockIn", function(name) TriggerEvent("AMBULANCE_JS:CLOCK_IN", { medicId = GetPlayerIdentifier(source, 0) or tostring(source), name = name }) end)
+RegisterNetEvent("ambulance:server:respond") AddEventHandler("ambulance:server:respond", function(cid) TriggerEvent("AMBULANCE_JS:RESPOND", { callId = cid, medicId = GetPlayerIdentifier(source, 0) or tostring(source) }) end)
+print("[AMBULANCE] Module charge")

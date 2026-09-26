@@ -1,0 +1,38 @@
+{
+  "//": "Config SERVEUR (Node.js, Colyseus, Fastify, Wasmoon). Hérite de tsconfig.base.json.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
+    "forceConsistentCasingInFileNames": true,
+
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./server/src/*"],
+      "@server/*": ["./server/src/*"],
+      "@lib/*": ["./server/src/lib/*"],
+      "@types/*": ["./server/src/types/*"]
+    }
+  },
+  "include": [
+    "server/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "_backup",
+    "_backup_fix_20260923_160332",
+    "server/src/routes/api/**/*.ts"
+  ]
+}

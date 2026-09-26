@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>⬡ EtherWorld — Bloc Appartements</title>
+<style>
+  :root {
+    --bg:     #020509;
+    --purple: #a78bfa;
+    --gold:   #c9a84c;
+    --green:  #34d399;
+    --red:    #f87171;
+    --muted:  #334155;
+    --font:   'JetBrains Mono', 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); overflow: hidden; font-family: var(--font); }
+  #canvas { display: block; width: 100vw; height: 100vh; }
+
+  /* ── HUD ── */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; z-index: 10;
+  }
+
+  /* Badge top-left */
+  #hud-badge {
+    position: absolute; top: 16px; left: 20px;
+  }
+  #hud-badge .sub  { color: var(--purple); font-size: 10px; letter-spacing: 3px; text-transform: uppercase; }
+  #hud-badge .main { color: var(--gold);   font-size: 20px; font-weight: 700; }
+
+  /* Joueurs top-right */
+  #hud-players {
+    position: absolute; top: 16px; right: 20px;
+    text-align: right; font-size: 11px;
+  }
+  .hud-row   { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-bottom: 3px; color: var(--muted); }
+  .hud-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  .hud-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* Chat */
+  #hud-chat {
+    position: absolute; bottom: 80px; left: 20px;
+    max-width: 380px; font-size: 12px;
+  }
+  .chat-msg {
+    background: rgba(2,5,9,0.85);
+    border: 1px solid rgba(167,139,250,0.15);
+    border-radius: 6px; padding: 5px 10px;
+    color: #e2e8f0; margin-bottom: 4px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; } }
+
+  /* Popup apt */
+  #apt-popup {
+    position: absolute; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(2,5,9,0.96);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-radius: 12px; padding: 14px 22px;
+    display: flex; align-items: center; gap: 18px;
+    pointer-events: auto; display: none;
+    backdrop-filter: blur(12px);
+    white-space: nowrap;
+  }
+  #apt-popup .apt-label { color: var(--purple); font-size: 10px; letter-spacing:2px; text-transform:uppercase; }
+  #apt-popup .apt-name  { color: var(--gold); font-size: 16px; font-weight:700; margin-top:2px; }
+  #apt-popup .apt-rent  { color: #e2e8f0; font-size: 14px; font-weight:700; }
+  #apt-popup .apt-status { font-size: 10px; }
+  #apt-popup .apt-status.vacant { color: var(--green); }
+  #apt-popup .apt-status.occupied { color: var(--red); }
+  #apt-popup button {
+    background: rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 7px; color: var(--purple);
+    padding: 6px 14px; cursor: pointer;
+    font-family: var(--font); font-size: 11px; letter-spacing:1px;
+    pointer-events: auto;
+  }
+  #apt-popup button:hover { background: rgba(167,139,250,0.28); }
+  #close-popup { background: none !important; border: none !important; color: var(--muted) !important; font-size: 16px; }
+
+  /* Hint */
+  #hud-hint {
+    position: absolute; bottom: 18px; right: 20px;
+    color: var(--muted); font-size: 9px; letter-spacing: 2px;
+    text-align: right; line-height: 1.8;
+  }
+
+  /* Ascenseur */
+  #hud-elevator {
+    position: absolute; right: 20px; top: 50%;
+    transform: translateY(-50%);
+    background: rgba(2,5,9,0.9);
+    border: 1px solid rgba(167,139,250,0.2);
+    border-radius: 10px; padding: 12px 10px;
+    pointer-events: auto; display: flex; flex-direction: column; gap: 5px;
+  }
+  #hud-elevator .elev-title { color: var(--purple); font-size: 9px; letter-spacing:2px; text-align:center; margin-bottom:4px; }
+  #hud-elevator button {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 5px; color: var(--muted);
+    padding: 4px 10px; cursor: pointer;
+    font-family: var(--font); font-size: 11px; font-weight:600;
+    transition: all 0.15s;
+  }
+  #hud-elevator button:hover,
+  #hud-elevator button.active {
+    background: rgba(167,139,250,0.18);
+    border-color: rgba(167,139,250,0.5);
+    color: var(--purple);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="hud-badge">
+    <div class="sub">EtherWorld — Résidence Éther</div>
+    <div class="main">BLOC APPARTEMENTS</div>
+  </div>
+
+  <div id="hud-players">
+    <div class="hud-row"><div class="hud-dot" id="ws-dot"></div><span id="ws-label">Connexion...</span></div>
+  </div>
+
+  <div id="hud-chat"></div>
+
+  <div id="apt-popup">
+    <div>
+      <div class="apt-label">APPARTEMENT</div>
+      <div class="apt-name" id="popup-name">Étage 0 — Apt A</div>
+    </div>
+    <div>
+      <div class="apt-label">LOYER</div>
+      <div class="apt-rent" id="popup-rent">850$/mois</div>
+    </div>
+    <div>
+      <div class="apt-label">STATUT</div>
+      <div class="apt-status vacant" id="popup-status">Disponible</div>
+    </div>
+    <button id="popup-action">Louer</button>
+    <button id="close-popup" onclick="document.getElementById('apt-popup').style.display='none'">✕</button>
+  </div>
+
+  <div id="hud-elevator">
+    <div class="elev-title">🛗 ASCENSEUR</div>
+    <!-- Boutons générés par JS -->
+  </div>
+
+  <div id="hud-hint">
+    DRAG · SCROLL · CLIC FENÊTRE<br>
+    WASD · ESPACE = SAUTER
+  </div>
+</div>
+
+<!-- ENTRÉE ESM -->
+<script type="module">
+  import { Building, BUILDING } from './building.js';
+  import { PlayerManager }       from './players.js';
+  import { EventBus }            from './events-bus.js';
+
+  // Importer main.js qui orchestre tout
+  // (ou copier-coller le contenu de main.js ici si serveur sans module routing)
+  await import('./main.js');
+
+  // ── Boutons ascenseur ──
+  const elevContainer = document.getElementById('hud-elevator');
+  for (let f = BUILDING.FLOORS - 1; f >= 0; f--) {
+    const btn = document.createElement('button');
+    btn.textContent = f === 0 ? 'RDC' : `É${f}`;
+    btn.dataset.floor = f;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#hud-elevator button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (window.ETHER_BUILDING) window.ETHER_BUILDING.callElevator(f);
+      if (window.ETHER_BUS) window.ETHER_BUS.emit('elevator:call', { floor: f, playerId: 'local' });
+    });
+    elevContainer.appendChild(btn);
+  }
+
+  // ── Apt popup via bus ──
+  window.addEventListener('ether:apt_selected', e => {
+    const apt = e.detail;
+    if (!apt) return;
+    const popup = document.getElementById('apt-popup');
+    document.getElementById('popup-name').textContent   = apt.label;
+    document.getElementById('popup-rent').textContent   = apt.rent + '$/mois';
+    const statusEl = document.getElementById('popup-status');
+    statusEl.textContent = apt.occupied ? 'Occupé' : 'Disponible';
+    statusEl.className   = 'apt-status ' + (apt.occupied ? 'occupied' : 'vacant');
+    popup.style.display  = 'flex';
+  });
+
+  // Exposer pour building.js
+  window._camera = null; // sera mis à jour par main.js
+</script>
+</body>
+</html>
